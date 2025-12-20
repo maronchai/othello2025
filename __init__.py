@@ -79,3 +79,84 @@ def myai(board, color):
             best_move = (r, c)
 
     return best_move
+
+def myai(board, color):
+    """
+    オセロAIのメイン関数。
+    ボードの状態と、自分が打つべき色を受け取り、次に打つべき手の座標を返す。
+    """
+
+    # Determine board dimensions dynamically
+    rows = len(board)
+    if rows == 0:
+        return None # Cannot make a move on an empty board
+
+    # Assuming all rows have the same number of columns
+    cols = len(board[0])
+    if cols == 0:
+        return None # Cannot make a move if rows are empty
+
+    # --- ヘルパー関数: 指定されたセルに石を置いた場合に裏返る石のリストを返す ---
+    def get_flipped_stones(r, c, board, color):
+        # 盤外、または空でないセルであれば無効
+        if not (0 <= r < rows and 0 <= c < cols) or board[r][c] != 0:
+            return []
+
+        opponent_color = 3 - color # 相手の色 (1 -> 2, 2 -> 1)
+        all_flipped_in_all_directions = []
+
+        # 8方向を定義 (上下左右、斜め)
+        directions = [
+            (-1, 0), (1, 0), (0, -1), (0, 1),
+            (-1, -1), (-1, 1), (1, -1), (1, 1)
+        ]
+
+        for dr, dc in directions:
+            current_flipped_in_direction = []
+            nr, nc = r + dr, c + dc # 探索開始位置
+
+            # 相手の石が連続しているかチェック
+            found_opponent = False
+            while 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == opponent_color:
+                current_flipped_in_direction.append((nr, nc))
+                nr += dr
+                nc += dc
+                found_opponent = True
+
+            # 相手の石の後に自分の石があるかチェック
+            if found_opponent and 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == color:
+                all_flipped_in_all_directions.extend(current_flipped_in_direction)
+
+        return all_flipped_in_all_directions
+
+    # --- 1. 現状で打てる手のリストを取得 (裏返せる石がある手のみ) ---
+    valid_moves_with_flips_count = {} # キー: (r, c), 値: 裏返せる石の数
+
+    for r in range(rows):
+        for c in range(cols):
+            if board[r][c] == 0: # 空きマスのみを対象
+                flipped_stones = get_flipped_stones(r, c, board, color)
+                if flipped_stones: # 裏返せる石がある場合のみ有効な手とみなす
+                    valid_moves_with_flips_count[(r, c)] = len(flipped_stones)
+
+    # ----------------------------------------
+
+    # --- 2. 打てる手の中から、最適/次に打つ手を決定 ---
+
+    if not valid_moves_with_flips_count:
+        # 打てる手がない場合（パス）
+        return None
+
+    # 【現在の選択ロジック（最も多く石を裏返せる手を選ぶ）】
+    # より高度なAIロジックはここに実装します（例：ミニマックス法や評価関数）。
+
+    best_move = None
+    max_flips = -1
+
+    for move, flips_count in valid_moves_with_flips_count.items():
+        if flips_count > max_flips:
+            max_flips = flips_count
+            best_move = move
+
+    # --- 3. 決定した手を返す ---
+    return best_move
