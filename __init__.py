@@ -1,71 +1,81 @@
-# __init__.py に記述する内容
+import numpy as np
 
+# 盤面のサイズ
+SIZE = 8
+EMPTY = 0
+BLACK = 1
+WHITE = 2
+
+def get_valid_moves(board, color):
+    moves = []
+    for r in range(SIZE):
+        for c in range(SIZE):
+            if can_put(board, color, r, c):
+                moves.append((r, c))
+    return moves
+
+def can_put(board, color, r, c):
+    if board[r, c] != EMPTY: return False
+    opponent = 3 - color
+    directions = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+    for dr, dc in directions:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < SIZE and 0 <= nc < SIZE and board[nr, nc] == opponent:
+            nr += dr
+            nc += dc
+            while 0 <= nr < SIZE and 0 <= nc < SIZE:
+                if board[nr, nc] == EMPTY: break
+                if board[nr, nc] == color: return True
+                nr += dr
+                nc += dc
+    return False
+
+def apply_move(board, color, r, c):
+    new_board = board.copy()
+    new_board[r, c] = color
+    opponent = 3 - color
+    directions = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+    for dr, dc in directions:
+        path = []
+        nr, nc = r + dr, c + dc
+        while 0 <= nr < SIZE and 0 <= nc < SIZE and new_board[nr, nc] == opponent:
+            path.append((nr, nc))
+            nr += dr
+            nc += dc
+        if 0 <= nr < SIZE and 0 <= nc < SIZE and new_board[nr, nc] == color:
+            for pr, pc in path:
+                new_board[pr, pc] = color
+    return new_board
+
+# --- ここに myai 関数を定義します ---
 def myai(board, color):
     """
-    オセロAIのメイン関数。
-    ボードの状態と、自分が打つべき色を受け取り、次に打つべき手の座標を返す。
-
-    Args:
-        board (list of list of int): 8x8のオセロ盤の状態。
-                                      0: 空、1: 黒（先手）、2: 白（後手）
-        color (int): 自分が打つ色 (1: 黒, 2: 白)
-
-    Returns:
-        tuple or None: (row, col) の形式で、次に石を置く座標を返す。
-                       打てる場所がない場合は None を返す。
+    盤面の重み付け（角を優先）に基づいた戦略をとるAI
     """
-    
-    # --- 1. 現状で打てる手のリストを取得 ---
-    
-    # 実際には、この部分で「board」と「color」を解析し、
-    # どこに打てば石が裏返るかを計算して、合法な手のリストを生成する必要があります。
-    # 例： [(r0, c0), (r1, c1), ...]
-    
-    # **【一時的なダミーコード】:**
-    # 現段階では動作確認のために、盤面の左上から順に空きマスを探す単純なロジックを記述します。
-    # 正しいオセロAIを実装する際には、このロジックを削除・修正してください。
-    
-    valid_moves = []
-    
-    # 8x8の盤面を探索
-    for r in range(8):
-        for c in range(8):
-            # 盤面が空（0）であるかチェック
-            if board[r][c] == 0:
-                # 本来はここで「color」を置いたときに石が裏返るかチェックが必要
-                # ダミーとして、空きマスであれば一旦「打てる場所」とみなす
-                valid_moves.append((r, c))
-    
-    # ----------------------------------------
-    
-    
-    # --- 2. 打てる手の中から、最適/次に打つ手を決定 ---
-    
+    valid_moves = get_valid_moves(board, color)
     if not valid_moves:
-        # 打てる手がない場合（パス）
         return None
-    
-    # 【現在の選択ロジック（ランダムまたはシンプルな選択）】
-    # ここに、ミニマックス法や評価関数などの高度なAIロジックを実装します。
-    
-    # 現状は、見つけた最初の合法な手（左上の空きマス）を返す
-    # 正しく実装するなら、ここでは評価関数を使って最良の手を選ぶ必要があります。
-    first_move = valid_moves[0]
-    
-    # --- 3. 決定した手を返す ---
-    return first_move
 
+    # 盤面の場所ごとの価値（重み付け）
+    weights = np.array([
+        [ 100, -20,  10,   5,   5,  10, -20, 100],
+        [ -20, -50,  -2,  -2,  -2,  -2, -50, -20],
+        [  10,  -2,   5,   1,   1,   5,  -2,  10],
+        [   5,  -2,   1,   0,   0,   1,  -2,   5],
+        [   5,  -2,   1,   0,   0,   1,  -2,   5],
+        [  10,  -2,   5,   1,   1,   5,  -2,  10],
+        [ -20, -50,  -2,  -2,  -2,  -2, -50, -20],
+        [ 100, -20,  10,   5,   5,  10, -20, 100]
+    ])
 
-# myai 関数とは別に、オセロ盤の構造を理解するための例
-# othello.play に渡される board の形式は以下の通りです
-EXAMPLE_BOARD = [
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 0行目
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 1行目
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 2行目
-    [0, 0, 0, 1, 2, 0, 0, 0],  # 3行目 (中央の初期配置)
-    [0, 0, 0, 2, 1, 0, 0, 0],  # 4行目 (中央の初期配置)
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 5行目
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 6行目
-    [0, 0, 0, 0, 0, 0, 0, 0],  # 7行目
-]
-# board[r][c] でアクセスします。例: board[3][3] は 1 (黒)
+    best_score = -float('inf')
+    best_move = valid_moves[0]
+
+    for r, c in valid_moves:
+        # 重みが高い場所を優先的に選ぶ
+        score = weights[r, c]
+        if score > best_score:
+            best_score = score
+            best_move = (r, c)
+
+    return best_move
